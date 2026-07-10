@@ -129,10 +129,10 @@ func NewHandler(service protoreflect.ServiceDescriptor, faker fauxrpc.ProtoFaker
 		w.Header().Set("Trailer", "Grpc-Status,Grpc-Message,Grpc-Status-Details-Bin")
 		w.Header().Add("Content-Type", "application/grpc")
 
-		// Mirror the client's requested encoding (gzip) on the response.
-		useGzip := strings.EqualFold(r.Header.Get("grpc-encoding"), "gzip")
+		// Compress responses when the client advertises gzip acceptance via
+		// grpc-accept-encoding, or implicitly via grpc-encoding on the request.
 		writeMessage := grpc.WriteGRPCMessage
-		if useGzip {
+		if clientAcceptsGzip(r) {
 			w.Header().Set("grpc-encoding", "gzip")
 			writeMessage = grpc.WriteGRPCMessageGzip
 		}

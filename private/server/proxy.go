@@ -145,10 +145,11 @@ func handleProxy(
 		}
 	}
 
-	// Mirror grpc-encoding: gzip on responses if the client requested it.
-	useGzip := strings.EqualFold(r.Header.Get("grpc-encoding"), "gzip")
+	// Compress responses when the client advertises gzip acceptance via
+	// grpc-accept-encoding, or implicitly via grpc-encoding on the request.
+	compressResp := clientAcceptsGzip(r)
 	writeMessage := grpc.WriteGRPCMessage
-	if useGzip {
+	if compressResp {
 		writeMessage = grpc.WriteGRPCMessageGzip
 	}
 
@@ -177,7 +178,7 @@ func handleProxy(
 
 		copyHeaders(resp.Header(), w.Header())
 		w.Header().Set("x-fauxrpc-source", "proxy")
-		if useGzip {
+		if compressResp {
 			w.Header().Set("grpc-encoding", "gzip")
 		}
 		*responseBody = resp.Msg
@@ -214,7 +215,7 @@ func handleProxy(
 
 		copyHeaders(stream.ResponseHeader(), w.Header())
 		w.Header().Set("x-fauxrpc-source", "proxy")
-		if useGzip {
+		if compressResp {
 			w.Header().Set("grpc-encoding", "gzip")
 		}
 
@@ -297,7 +298,7 @@ func handleProxy(
 
 		copyHeaders(resp.Header(), w.Header())
 		w.Header().Set("x-fauxrpc-source", "proxy")
-		if useGzip {
+		if compressResp {
 			w.Header().Set("grpc-encoding", "gzip")
 		}
 		*responseBody = resp.Msg
@@ -386,7 +387,7 @@ func handleProxy(
 
 		copyHeaders(bidiStream.ResponseHeader(), w.Header())
 		w.Header().Set("x-fauxrpc-source", "proxy")
-		if useGzip {
+		if compressResp {
 			w.Header().Set("grpc-encoding", "gzip")
 		}
 
